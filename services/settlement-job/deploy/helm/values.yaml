@@ -1,0 +1,4 @@
+image:
+  repository: public.ecr.aws/pantalasa-cronos/settlement-job
+  tag: "1.0.0"
+schedule: "*/15 * * * *"

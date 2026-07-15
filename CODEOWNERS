@@ -1,0 +1,9 @@
+# Shared governance changes intentionally re-evaluate every Ulises component.
+* @brandonSc
+
+/services/payments-api/ @brandonSc
+/services/merchant-web/ @brandonSc
+/services/settlement-job/ @brandonSc
+/platform/ @brandonSc
+/tools/service-generator/ @brandonSc
+/.github/workflows/ @brandonSc

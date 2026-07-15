@@ -1,0 +1,13 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: settlement-job
+  description: Synthetic standard-tier Rust background job
+  annotations:
+    pantalasa.org/domain: ulises.applications.standard
+spec:
+  type: service
+  lifecycle: experimental
+  owner: user:default/brandonSc
+  system: ulises
+  domain: ulises

@@ -1,0 +1,76 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  payments-api:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/payments-api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Test
+        run: ./gradlew test --no-daemon
+      - name: Build image
+        run: docker build -t ulises/payments-api:test .
+
+  merchant-web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/merchant-web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: services/merchant-web/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Build image
+        run: docker build -t ulises/merchant-web:test .
+
+  settlement-job:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/settlement-job
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.88.0"
+          components: clippy,rustfmt
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test --locked
+      - name: Build image
+        run: docker build -t ulises/settlement-job:test .
+
+  config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Lint Helm charts
+        run: |
+          helm lint services/payments-api/deploy/helm
+          helm lint services/merchant-web/deploy/helm
+          helm lint services/settlement-job/deploy/helm
+          helm lint platform/helm
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive services

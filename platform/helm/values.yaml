@@ -1,0 +1,5 @@
+layers:
+  - base-charts
+  - platform-charts
+  - root-catalog
+  - monorepo-catalog

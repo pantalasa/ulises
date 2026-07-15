@@ -1,0 +1,13 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: platform-helm
+  description: Synthetic Ulises platform chart hierarchy
+  annotations:
+    pantalasa.org/domain: ulises.platform
+spec:
+  type: service
+  lifecycle: experimental
+  owner: user:default/brandonSc
+  system: ulises
+  domain: ulises

@@ -1,0 +1,13 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: payments-api
+  description: Synthetic critical-tier Kotlin/Spring API
+  annotations:
+    pantalasa.org/domain: ulises.applications.critical
+spec:
+  type: service
+  lifecycle: experimental
+  owner: user:default/brandonSc
+  system: ulises
+  domain: ulises
