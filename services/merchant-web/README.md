@@ -31,3 +31,7 @@ Stacked collector retest base.
 ## Stack onto (ENG-1155)
 
 Stacked collector retest dependent.
+
+## Stack base (ENG-1158)
+
+Verify stacked collector after fix.
