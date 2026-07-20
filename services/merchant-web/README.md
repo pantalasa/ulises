@@ -11,3 +11,7 @@ Fake PR #1 for Cronos release-notes collection (ENG-1150).
 ## Probe 2
 
 Fake PR #2 for Cronos release-notes collection (ENG-1151).
+
+## Probe 3
+
+Fake PR #3 for Cronos release-notes collection (ENG-1152).
