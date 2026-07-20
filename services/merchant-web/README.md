@@ -23,3 +23,7 @@ Base branch for stacked PR test (ENG-1154).
 ## Stack onto probe (ENG-1153)
 
 Dependent PR stacked on nacho/merchant-web-stack-base-1154 (ENG-1153).
+
+## Stack base (ENG-1156)
+
+Stacked collector retest base.
