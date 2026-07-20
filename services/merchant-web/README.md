@@ -15,3 +15,11 @@ Fake PR #2 for Cronos release-notes collection (ENG-1151).
 ## Probe 3
 
 Fake PR #3 for Cronos release-notes collection (ENG-1152).
+
+## Stack base probe (ENG-1154)
+
+Base branch for stacked PR test (ENG-1154).
+
+## Stack onto probe (ENG-1153)
+
+Dependent PR stacked on nacho/merchant-web-stack-base-1154 (ENG-1153).
