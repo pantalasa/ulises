@@ -21,4 +21,8 @@ export class LruCache<V> {
       this.map.delete(this.map.keys().next().value as string);
     }
   }
+  // ENG-1601: explicit eviction so merchant.settings.updated can invalidate.
+  delete(key: string): boolean {
+    return this.map.delete(key);
+  }
 }
