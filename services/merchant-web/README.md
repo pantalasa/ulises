@@ -39,3 +39,7 @@ Verify stacked collector after fix.
 ## Stack onto (ENG-1157)
 
 Verify stacked collector dependent after fix.
+
+## Auth preflight probe
+
+Trigger release-ticket collection to verify the GitHub auth preflight logging.
