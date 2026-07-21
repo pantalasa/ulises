@@ -8,10 +8,19 @@ import { cacheHitRatio, recordHit, recordMiss } from "../cache/tokenCacheMetrics
 
 // Deterministic 0..99 bucket per merchant so a given merchant stays on one side
 // of the ramp across requests (no flapping while we watch the error rate).
+//
+// DP-62: fold the modulus in only once, at the end. The previous hash took
+// `% 100` on every iteration, which collapses the running state to 0..99
+// mid-stream and mixes poorly — buckets clustered, so an N% ramp did not map to
+// ~N% of merchants and rollout sampling was skewed. FNV-1a over the whole id,
+// kept 32-bit via Math.imul/`>>> 0`, gives an even 0..99 spread.
 function bucket(merchantId: string): number {
-  let h = 0;
-  for (const ch of merchantId) h = (h * 31 + ch.charCodeAt(0)) % 100;
-  return h;
+  let h = 0x811c9dc5; // FNV-1a 32-bit offset basis
+  for (const ch of merchantId) {
+    h ^= ch.charCodeAt(0);
+    h = Math.imul(h, 0x01000193); // FNV prime
+  }
+  return (h >>> 0) % 100;
 }
 
 export function cacheEnabledForMerchant(
