@@ -1,0 +1,43 @@
+name: Release Gate
+# Runs the REAL Lunar release gate for merchant-web from within ulises's own
+# pipeline. It runs on the self-hosted `lunar` runner, whose environment already
+# carries the hub credentials (LUNAR_HUB_TOKEN / LUNAR_HUB_HOST / ports) and a
+# built-in `lunar` CLI — so no repo secret or CLI install is needed.
+#
+# `lunar policy ok-release` waits for the hub to finish evaluating the pushed
+# commit, then exits non-zero if any `block-release` policy is failing
+# (e.g. ulises-nodejs.min-node-version) — which fails this job and blocks the
+# release.
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'SHA to gate (default: current commit)'
+        required: false
+jobs:
+  merchant-web:
+    runs-on: lunar
+    steps:
+    - name: Release gate — merchant-web (block-release policies)
+      run: |
+        SHA="${{ inputs.sha }}"
+        SHA="${SHA:-$GITHUB_SHA}"
+        COMPONENT="github.com/pantalasa/ulises/services/merchant-web"
+        echo "=========================================="
+        echo "  Lunar Release Gate — ok-release"
+        echo "  Component: $COMPONENT"
+        echo "  SHA:       $SHA"
+        echo "=========================================="
+        set +e
+        lunar policy ok-release "$COMPONENT" "$SHA" --timeout 10m
+        rc=$?
+        set -e
+        echo ""
+        if [ "$rc" -eq 0 ]; then
+          echo "✅ Release ALLOWED — no block-release policy is failing for $COMPONENT @ $SHA."
+        else
+          echo "❌ Release BLOCKED — a block-release policy is failing for $COMPONENT @ $SHA (exit $rc)."
+        fi
+        exit $rc

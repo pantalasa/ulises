@@ -6,3 +6,4 @@
 - squash-demo2 inner (ENG-1501)
 - ENG-1601: add in-memory LRU for checkout-token cache
 - ENG-1602: wire checkout-token cache into payment flow (flagged)
+- ENG-1701: enforce Node 24 as a block-release gate (release-gate.yml)
