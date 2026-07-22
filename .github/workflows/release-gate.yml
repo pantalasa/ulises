@@ -11,6 +11,11 @@ name: Release Gate
 on:
   push:
     branches: ["main"]
+    # Only gate when merchant-web actually changes — that's when the hub
+    # re-collects and re-evaluates it at the pushed sha. (Mirrors the component's
+    # own `paths` in the Lunar manifest.)
+    paths:
+      - "services/merchant-web/**"
   workflow_dispatch:
     inputs:
       sha:
