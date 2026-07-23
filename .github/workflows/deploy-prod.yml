@@ -85,7 +85,7 @@ jobs:
 
       - name: Record release event
         # Runs regardless of prior step outcomes so we capture denied gates too.
-        # Stamps `.deploy.releases.<run_id>` onto the SAME (component, sha) the
+        # Stamps `.deploy.attempts.<run_id>` onto the SAME (component, sha) the
         # gate evaluated — steps.ctx.outputs.sha is the resolved input SHA, not
         # the workflow's ref sha, so this is drift-free even if the dispatched
         # SHA differs from main HEAD. `outcome` reflects the gate step
@@ -103,8 +103,8 @@ jobs:
         run: |
           echo "==> Recording release event for $COMPONENT @ $SHA (run $RUN_ID, outcome=$OUTCOME)"
           lunar collect --component "$COMPONENT" --sha "$SHA" \
-            ".deploy.releases.$RUN_ID.release_time"     "$(date -u +%FT%TZ)" \
-            ".deploy.releases.$RUN_ID.release_author"   "$AUTHOR"            \
-            ".deploy.releases.$RUN_ID.target_env"       "$TARGET_ENV"        \
-            ".deploy.releases.$RUN_ID.outcome"          "$OUTCOME"           \
-            ".deploy.releases.$RUN_ID.workflow_run_url" "$RUN_URL"
+            ".deploy.attempts.$RUN_ID.release_time"     "$(date -u +%FT%TZ)" \
+            ".deploy.attempts.$RUN_ID.release_author"   "$AUTHOR"            \
+            ".deploy.attempts.$RUN_ID.target_env"       "$TARGET_ENV"        \
+            ".deploy.attempts.$RUN_ID.outcome"          "$OUTCOME"           \
+            ".deploy.attempts.$RUN_ID.workflow_run_url" "$RUN_URL"
