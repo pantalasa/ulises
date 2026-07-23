@@ -58,6 +58,7 @@ jobs:
           sleep 30
 
       - name: Lunar staging gate (ok-release)
+        id: gate
         env:
           SHA: ${{ steps.ctx.outputs.sha }}
           COMPONENT: ${{ steps.ctx.outputs.component }}
@@ -88,3 +89,29 @@ jobs:
         run: |
           echo "==> [simulated] pushing $COMPONENT @ $SHA to dev ECR"
           echo "==> [simulated] Flux (dev) will now pick up the new image"
+
+      - name: Record release event
+        # Runs regardless of prior step outcomes so we capture denied gates too.
+        # Stamps `.deploy.releases.<run_id>` onto the SAME (component, sha) the
+        # gate evaluated — steps.ctx.outputs.sha is the resolved input SHA, not
+        # the workflow's ref sha, so this is drift-free even if the dispatched
+        # SHA differs from main HEAD. `outcome` reflects the gate step
+        # specifically (steps.gate.outcome), not the whole job — a downstream
+        # deploy-step failure won't spuriously flip a passed gate to "denied".
+        if: always()
+        env:
+          SHA:        ${{ steps.ctx.outputs.sha }}
+          COMPONENT:  ${{ steps.ctx.outputs.component }}
+          RUN_ID:     ${{ github.run_id }}
+          RUN_URL:    ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          AUTHOR:     ${{ github.actor }}
+          TARGET_ENV: staging
+          OUTCOME:    ${{ steps.gate.outcome == 'success' && 'published' || 'denied' }}
+        run: |
+          echo "==> Recording release event for $COMPONENT @ $SHA (run $RUN_ID, outcome=$OUTCOME)"
+          lunar collect --component "$COMPONENT" --sha "$SHA" \
+            ".deploy.releases.$RUN_ID.release_time"     "$(date -u +%FT%TZ)" \
+            ".deploy.releases.$RUN_ID.release_author"   "$AUTHOR"            \
+            ".deploy.releases.$RUN_ID.target_env"       "$TARGET_ENV"        \
+            ".deploy.releases.$RUN_ID.outcome"          "$OUTCOME"           \
+            ".deploy.releases.$RUN_ID.workflow_run_url" "$RUN_URL"
