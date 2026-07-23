@@ -1,0 +1,82 @@
+name: Deploy staging (settlement-job)
+# Simulates Barclays' "push to dev ECR" step.
+#
+# Runs on the self-hosted `lunar` runner, which already carries the hub
+# credentials (LUNAR_HUB_HOST / LUNAR_HUB_TOKEN / grpc+http ports) and a
+# built-in `lunar` CLI — so no repo secret or CLI install is needed.
+#
+# Gating flow:
+#   1) Stamp the target environment onto this (component, SHA) via
+#      `lunar collect ... .deploy.target_env staging`. This causes the hub
+#      to re-evaluate `block-release` policies for that commit — the
+#      prod-only checks (see policies/bpl-prod-gate) read this key and
+#      `skip()` themselves, so only the baseline release checks assert.
+#   2) `lunar policy ok-release` polls the hub until collection + policy
+#      evaluation are done, then exits 0 (allow) or 1 (block). A non-zero
+#      exit fails this job and stops the "staging deploy" step below.
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "services/settlement-job/**"
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'SHA to gate (default: current commit)'
+        required: false
+
+concurrency:
+  group: staging-deploy-settlement-job
+  cancel-in-progress: false
+
+jobs:
+  gate-and-deploy:
+    runs-on: lunar
+    steps:
+      - name: Resolve SHA and component
+        id: ctx
+        run: |
+          SHA="${{ inputs.sha }}"
+          SHA="${SHA:-$GITHUB_SHA}"
+          COMPONENT="github.com/pantalasa/ulises/services/settlement-job"
+          echo "sha=$SHA"        >> "$GITHUB_OUTPUT"
+          echo "component=$COMPONENT" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp target_env=staging
+        env:
+          SHA: ${{ steps.ctx.outputs.sha }}
+          COMPONENT: ${{ steps.ctx.outputs.component }}
+        run: |
+          echo "==> Marking $COMPONENT @ $SHA with .deploy.target_env=staging"
+          lunar collect --component "$COMPONENT" --sha "$SHA" .deploy.target_env staging
+
+      - name: Lunar staging gate (ok-release)
+        env:
+          SHA: ${{ steps.ctx.outputs.sha }}
+          COMPONENT: ${{ steps.ctx.outputs.component }}
+        run: |
+          echo "=========================================="
+          echo "  Lunar Staging Gate — ok-release"
+          echo "  Component: $COMPONENT"
+          echo "  SHA:       $SHA"
+          echo "  target_env: staging"
+          echo "=========================================="
+          set +e
+          lunar policy ok-release "$COMPONENT" "$SHA" \
+            --workflow-id "$GITHUB_RUN_ID" \
+            --timeout 10m
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::Staging deploy BLOCKED — a block-release policy is failing for $COMPONENT @ $SHA (exit $rc)."
+            exit $rc
+          fi
+          echo "Staging gate PASSED — proceeding with deploy."
+
+      - name: Simulated staging deploy
+        env:
+          SHA: ${{ steps.ctx.outputs.sha }}
+          COMPONENT: ${{ steps.ctx.outputs.component }}
+        run: |
+          echo "==> [simulated] pushing $COMPONENT @ $SHA to dev ECR"
+          echo "==> [simulated] Flux (dev) will now pick up the new image"
