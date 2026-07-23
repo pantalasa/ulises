@@ -1,4 +1,7 @@
 terraform {
+  # NOTE: bumping this triggers a merchant-web CI collector run under the
+  # current component_id, which is what lets the release ledger show a
+  # coherent Component JSON (CI + external `.deploy.*`) on the same SHA.
   required_version = ">= 1.10, < 2.0"
 }
 
