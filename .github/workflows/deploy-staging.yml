@@ -1,4 +1,4 @@
-name: Deploy staging (settlement-job)
+name: Deploy staging (merchant-web)
 # Simulates Barclays' "push to dev ECR" step.
 #
 # Runs on the self-hosted `lunar` runner, which already carries the hub
@@ -18,7 +18,7 @@ on:
   push:
     branches: ["main"]
     paths:
-      - "services/settlement-job/**"
+      - "services/merchant-web/**"
   workflow_dispatch:
     inputs:
       sha:
@@ -26,7 +26,7 @@ on:
         required: false
 
 concurrency:
-  group: staging-deploy-settlement-job
+  group: staging-deploy-merchant-web
   cancel-in-progress: false
 
 jobs:
@@ -38,7 +38,7 @@ jobs:
         run: |
           SHA="${{ inputs.sha }}"
           SHA="${SHA:-$GITHUB_SHA}"
-          COMPONENT="github.com/pantalasa/ulises/services/settlement-job"
+          COMPONENT="github.com/pantalasa/ulises/services/merchant-web"
           echo "sha=$SHA"        >> "$GITHUB_OUTPUT"
           echo "component=$COMPONENT" >> "$GITHUB_OUTPUT"
 
