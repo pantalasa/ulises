@@ -49,6 +49,11 @@ jobs:
         run: |
           echo "==> Marking $COMPONENT @ $SHA with .deploy.target_env=staging"
           lunar collect --component "$COMPONENT" --sha "$SHA" .deploy.target_env staging
+          # Small settling window: the `collect` above enqueues a policy
+          # re-evaluation that is not correlated with the ok-release workflow
+          # id below, so ok-release could otherwise read the pre-stamp
+          # policy state and return "allowed" against stale data.
+          sleep 15
 
       - name: Lunar staging gate (ok-release)
         env:
@@ -64,6 +69,7 @@ jobs:
           set +e
           lunar policy ok-release "$COMPONENT" "$SHA" \
             --workflow-id "$GITHUB_RUN_ID" \
+            --poll-interval 5s \
             --timeout 10m
           rc=$?
           set -e
