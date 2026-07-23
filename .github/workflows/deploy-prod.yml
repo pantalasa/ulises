@@ -1,0 +1,75 @@
+name: Deploy prod (settlement-job)
+# Simulates Barclays' "promotion" step: promoting an already-staged artifact
+# from dev ECR to prod ECR. No rebuild — same SHA as the staging deploy.
+#
+# Runs on the self-hosted `lunar` runner (hub creds + `lunar` CLI already
+# available). Manual dispatch to reflect a deliberate promotion action.
+#
+# Gating flow (mirror of deploy-staging.yml, but with target_env=prod):
+#   1) Overwrite .deploy.target_env=prod on this (component, SHA). Same SHA
+#      that staged, so the release-ticket / vcs collectors already have
+#      data. This flip causes the hub to re-evaluate — now the prod-only
+#      block-release checks (bpl-prod-gate) ASSERT instead of skipping.
+#   2) `lunar policy ok-release` blocks the promotion (exit 1) if any
+#      block-release policy is failing for this commit with target_env=prod.
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'SHA already deployed to staging that you want to promote to prod'
+        required: true
+
+concurrency:
+  group: prod-deploy-settlement-job
+  cancel-in-progress: false
+
+jobs:
+  gate-and-promote:
+    runs-on: lunar
+    steps:
+      - name: Resolve context
+        id: ctx
+        run: |
+          SHA="${{ inputs.sha }}"
+          COMPONENT="github.com/pantalasa/ulises/services/settlement-job"
+          echo "sha=$SHA"        >> "$GITHUB_OUTPUT"
+          echo "component=$COMPONENT" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp target_env=prod
+        env:
+          SHA: ${{ steps.ctx.outputs.sha }}
+          COMPONENT: ${{ steps.ctx.outputs.component }}
+        run: |
+          echo "==> Marking $COMPONENT @ $SHA with .deploy.target_env=prod"
+          lunar collect --component "$COMPONENT" --sha "$SHA" .deploy.target_env prod
+
+      - name: Lunar prod gate (ok-release)
+        env:
+          SHA: ${{ steps.ctx.outputs.sha }}
+          COMPONENT: ${{ steps.ctx.outputs.component }}
+        run: |
+          echo "=========================================="
+          echo "  Lunar Prod Gate — ok-release"
+          echo "  Component: $COMPONENT"
+          echo "  SHA:       $SHA"
+          echo "  target_env: prod"
+          echo "=========================================="
+          set +e
+          lunar policy ok-release "$COMPONENT" "$SHA" \
+            --workflow-id "$GITHUB_RUN_ID" \
+            --timeout 10m
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::Prod promotion BLOCKED — a block-release policy is failing for $COMPONENT @ $SHA (exit $rc)."
+            exit $rc
+          fi
+          echo "Prod gate PASSED — proceeding with promotion."
+
+      - name: Simulated prod promotion
+        env:
+          SHA: ${{ steps.ctx.outputs.sha }}
+          COMPONENT: ${{ steps.ctx.outputs.component }}
+        run: |
+          echo "==> [simulated] copying $COMPONENT @ $SHA from dev ECR to prod ECR"
+          echo "==> [simulated] Flux (prod) will now pick up the promoted image"

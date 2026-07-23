@@ -3,8 +3,14 @@ terraform {
 }
 
 module "asset_bucket" {
-  source  = "terraform-aws-modules/s3-bucket/aws"
-  version = "5.14.1"
+  source = "s3::https://bpl-gaia-infra-services-nonprod-terraform-modules.s3.eu-west-2.amazonaws.com/s3-bucket-0.0.42.zip"
 
-  bucket = "ulises-merchant-assets"
+  bucket_name  = "ulises-merchant-assets"
+  service_name = "merchant-web"
+  owner        = "merchant-servicing"
+  environment  = "dev"
+}
+
+output "bucket_name" {
+  value = module.asset_bucket.bucket_name
 }
