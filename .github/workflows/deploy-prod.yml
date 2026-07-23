@@ -1,4 +1,4 @@
-name: Deploy prod (settlement-job)
+name: Deploy prod (merchant-web)
 # Simulates Barclays' "promotion" step: promoting an already-staged artifact
 # from dev ECR to prod ECR. No rebuild — same SHA as the staging deploy.
 #
@@ -20,7 +20,7 @@ on:
         required: true
 
 concurrency:
-  group: prod-deploy-settlement-job
+  group: prod-deploy-merchant-web
   cancel-in-progress: false
 
 jobs:
@@ -31,7 +31,7 @@ jobs:
         id: ctx
         run: |
           SHA="${{ inputs.sha }}"
-          COMPONENT="github.com/pantalasa/ulises/services/settlement-job"
+          COMPONENT="github.com/pantalasa/ulises/services/merchant-web"
           echo "sha=$SHA"        >> "$GITHUB_OUTPUT"
           echo "component=$COMPONENT" >> "$GITHUB_OUTPUT"
 
