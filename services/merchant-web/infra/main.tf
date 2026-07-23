@@ -4,6 +4,8 @@ terraform {
   # coherent Component JSON (CI + external `.deploy.*`) on the same SHA.
   # demo bump 2026-07-23: fresh SHA so Deploy attempts land under the new
   # .deploy.attempts key only (no legacy .deploy.releases).
+  # demo bump 2026-07-23b: exercise the ulises-terraform collector
+  # (captures .iac.native.terraform.files for this main.tf).
   required_version = ">= 1.10, < 2.0"
 }
 
