@@ -2,6 +2,8 @@ terraform {
   # NOTE: bumping this triggers a merchant-web CI collector run under the
   # current component_id, which is what lets the release ledger show a
   # coherent Component JSON (CI + external `.deploy.*`) on the same SHA.
+  # demo bump 2026-07-23: fresh SHA so Deploy attempts land under the new
+  # .deploy.attempts key only (no legacy .deploy.releases).
   required_version = ">= 1.10, < 2.0"
 }
 
