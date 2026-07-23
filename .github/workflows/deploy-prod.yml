@@ -42,11 +42,13 @@ jobs:
         run: |
           echo "==> Marking $COMPONENT @ $SHA with .deploy.target_env=prod"
           lunar collect --component "$COMPONENT" --sha "$SHA" .deploy.target_env prod
-          # Small settling window: the `collect` above enqueues a policy
-          # re-evaluation that is not correlated with the ok-release workflow
-          # id below, so ok-release could otherwise read the pre-stamp
-          # policy state and return "allowed" against stale data.
-          sleep 15
+          # Settle window: the `collect` above enqueues a policy re-evaluation
+          # that is not correlated with the ok-release --workflow-id below, so
+          # ok-release could otherwise read the pre-stamp policy state and
+          # return "allowed" against stale data. 30s empirically covers
+          # re-eval latency on the demo hub with margin — bump higher for
+          # heavier fleets.
+          sleep 30
 
       - name: Lunar prod gate (ok-release)
         env:
