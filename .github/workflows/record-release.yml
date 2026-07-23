@@ -1,0 +1,87 @@
+name: Record release event
+# Out-of-band audit trail: for every completed run of deploy-staging.yml or
+# deploy-prod.yml, stamp a compact "who deployed what where, and was it
+# published or denied" record onto the (component, sha) in Lunar, keyed by the
+# triggering workflow's run ID.
+#
+# Design notes:
+# - `workflow_run` fires AFTER the deploy workflow settles, so `conclusion`
+#   reflects the actual gate result. A block-release-triggered exit 1 shows up
+#   here as conclusion=failure → outcome=denied.
+# - We key by run ID (never overwrites) so staging + prod + retries on the
+#   same SHA all coexist as distinct entries under `.deploy.releases[<run_id>]`.
+# - No gating happens here. This workflow is pure metadata capture; a failure
+#   in it must never affect the deploy pipeline.
+# - `github.event.workflow_run.head_sha` is the ref SHA the deploy workflow
+#   ran against. For our deploys that matches the gated SHA (push-triggered
+#   staging: HEAD == deployed; workflow_dispatch prod: we always dispatch
+#   against main HEAD and pass -f sha=<main HEAD>). If Barclays ever needs to
+#   promote an older SHA via -f sha=<older>, this record will still reference
+#   the ref SHA — extend by fetching the resolved SHA via the API or a
+#   workflow annotation from the deploy workflow.
+on:
+  workflow_run:
+    workflows:
+      - "Deploy staging (merchant-web)"
+      - "Deploy prod (merchant-web)"
+    types: [completed]
+
+jobs:
+  record:
+    runs-on: lunar
+    steps:
+      - name: Derive fields from the triggering run
+        id: f
+        env:
+          NAME:       ${{ github.event.workflow_run.name }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_ID:     ${{ github.event.workflow_run.id }}
+          RUN_URL:    ${{ github.event.workflow_run.html_url }}
+          HEAD_SHA:   ${{ github.event.workflow_run.head_sha }}
+          ACTOR:      ${{ github.event.workflow_run.actor.login }}
+          UPDATED_AT: ${{ github.event.workflow_run.updated_at }}
+        run: |
+          set -euo pipefail
+          # NAME = e.g. "Deploy staging (merchant-web)"
+          TAIL="${NAME#Deploy }"                     # "staging (merchant-web)"
+          TARGET_ENV="${TAIL%% *}"                   # "staging"
+          LEAF="${TAIL#*(}"                          # "merchant-web)"
+          LEAF="${LEAF%)}"                           # "merchant-web"
+          if [ -z "$TARGET_ENV" ] || [ -z "$LEAF" ]; then
+            echo "::error::Failed to parse workflow name '$NAME'"
+            exit 1
+          fi
+          case "$CONCLUSION" in
+            success) OUTCOME=published ;;
+            *)       OUTCOME=denied   ;;  # failure / cancelled / timed_out / …
+          esac
+          {
+            echo "component=github.com/pantalasa/ulises/services/$LEAF"
+            echo "sha=$HEAD_SHA"
+            echo "run_id=$RUN_ID"
+            echo "run_url=$RUN_URL"
+            echo "author=$ACTOR"
+            echo "time=$UPDATED_AT"
+            echo "target_env=$TARGET_ENV"
+            echo "outcome=$OUTCOME"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Stamp .deploy.releases.<run_id>
+        env:
+          C:  ${{ steps.f.outputs.component }}
+          S:  ${{ steps.f.outputs.sha }}
+          R:  ${{ steps.f.outputs.run_id }}
+          U:  ${{ steps.f.outputs.run_url }}
+          A:  ${{ steps.f.outputs.author }}
+          T:  ${{ steps.f.outputs.time }}
+          TE: ${{ steps.f.outputs.target_env }}
+          O:  ${{ steps.f.outputs.outcome }}
+        run: |
+          echo "==> Recording release event for $C @ $S (run $R)"
+          echo "    target_env=$TE outcome=$O author=$A time=$T"
+          lunar collect --component "$C" --sha "$S" \
+            ".deploy.releases.$R.release_time"     "$T"  \
+            ".deploy.releases.$R.release_author"   "$A"  \
+            ".deploy.releases.$R.target_env"       "$TE" \
+            ".deploy.releases.$R.outcome"          "$O"  \
+            ".deploy.releases.$R.workflow_run_url" "$U"
