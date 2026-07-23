@@ -14,3 +14,5 @@ Each application owns:
 
 This repository does not provision EKS, ECR, Flux, or foundational Terraform.
 Those systems are represented only in the documented release flow.
+
+<!-- record-release verification 2026-07-23T11:21:01Z -->
